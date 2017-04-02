@@ -1,0 +1,17 @@
+Dir=dir('*.mat');
+N=length(Dir);
+for k=1:N
+    name=Dir(k).name;
+    delete(name);
+end
+Dir=dir('E:\渔船大数据\分类备份库\*.xlsx');
+N=length(Dir);
+for k=1:N
+    name=Dir(k).name;
+    fname=['x' num2str(k)];
+    table=xlsread(['E:\渔船大数据\分类备份库\' name]);
+    order=sprintf('%s=table(2:end,19:21);',fname);eval(order);
+    save(fname,fname);
+end
+clear;
+toc;
