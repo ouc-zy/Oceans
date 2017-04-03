@@ -1,0 +1,15 @@
+function Heat = HeatAdd( Y,Heat,s,w )
+load('Boundary.mat');
+WS=floor((s-South)*600)-1;
+WE=floor((w-West)*600)-1;
+rowstart=size(Heat,1)-(WS+size(Y,1));
+rowend=size(Heat,1)-WS-1;
+rowd=rowend-rowstart;
+columnstart=WE;
+columnend=WE+size(Y,2)-1;
+columnd=columnend-columnstart;
+Heat=Heat+1;
+Y=1-Y;
+Heat(rowstart:rowend,columnstart:columnend)=Heat(rowstart:rowend,columnstart:columnend)-Y;
+end
+
