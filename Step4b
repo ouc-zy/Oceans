@@ -1,0 +1,132 @@
+tic;
+speed=4;% 平均速度列号
+latitude=2;% 纬度列号
+longitude=3;% 经度列号
+
+East=-180;
+West=180;
+South=90;
+North=-90;
+
+Dir=dir('E:\渔船大数据\2甄勇\*.mat');
+N=length(Dir);
+Port=[];
+for i=1:N
+    name=Dir(i).name;
+    if(name(1)~='x')
+        continue;
+    end
+    load(['E:\渔船大数据\2甄勇\' name]);
+    
+    pos=strfind(name,'.');
+    name=name(1:pos-1);
+    order=sprintf('Port=[Port;%sPort];',name);eval(order);
+    order=sprintf('clear %s',name);eval(order);
+    order=sprintf('clear %sPort',name);eval(order);
+    order=sprintf('clear %sTrackList',name);eval(order);
+end
+
+Dir=dir('*.mat');% 先读取目录，后保存Port
+N=length(Dir);
+
+% 手动插入了部分港口
+save('Port','Port');
+PL=size(Port,1);
+
+for i=2:N
+    name=Dir(i).name;
+    load(name);
+    pos=strfind(name,'.');
+    name=name(1:pos-1);
+    order=sprintf('Obj=%s;',name);eval(order);% 简化代码
+    
+    % GPS坐标转经纬度
+    Lati=floor((Obj(:,latitude)/10000)/60)+rem(Obj(:,latitude)/10000,60)/60;
+    Longi=floor((Obj(:,longitude)/10000)/60)+rem(Obj(:,longitude)/10000,60)/60;
+    
+%% 计算平均速度：去除速度异常值
+    Lati1=Lati(1:end-1);
+    Lati2=Lati(2:end);
+    earth_radius=6372; %地球半径
+    Distance=earth_radius*acos(cos(Lati1*pi/180).*cos(Lati2*pi/180)...
+        .*cos(abs(diff(Lati))*pi/180)+sin(Lati1*pi/180)...
+        .*sin(Lati2*pi/180));
+    Distance=abs(Distance);
+    Distance=Distance/1.852;
+    Speed=(Distance./(abs(diff(Obj(:,1)))/3600))*10;
+    Zeromatric = ones(size(Speed,1),1);
+    Zeromatric(Speed > 300) = 0;% 标记平均速度异常：大于30节
+    Obj=[Obj(:,1),Lati,Longi,[Speed;0]];
+    Obj=Obj(Zeromatric==1,:);
+   
+%% 去除经纬度异常值
+    Obj=Obj(Obj(:,latitude)~=0,:);
+    Obj=Obj(Obj(:,longitude)~=0,:);
+    Obj(Obj(:,latitude)<23,:)=[];
+    Obj(Obj(:,latitude)>34,:)=[];
+    Obj(Obj(:,longitude)<118,:)=[];
+    Obj(Obj(:,longitude)>128,:)=[];
+    
+%% 根据港口划分航次
+    gridwestlongitude=min(Obj(:,longitude));%所有方格点的最西经度
+    gridnorthlatitude=max(Obj(:,latitude));%所有方格点的最北纬度
+    gridsouthlatitude=min(Obj(:,latitude));%所有方格点的最南纬度
+    grideastlongitude=max(Obj(:,longitude));%所有方格点的最东经度
+    
+    Portpoints=[];% 所有在港口内的数据
+    for j=1:PL% 港口经纬度转格子坐标
+        Y=floor((Port(j,1)-gridwestlongitude)/(1/60))+1;
+        X=floor((Port(j,2)-gridsouthlatitude)/(1/60))+1;
+        
+        cellwest=gridwestlongitude+(Y-1-1)/60;% 扩大范围，参数自定
+        celleast=gridwestlongitude+(Y+1)/60;
+        cellsouth=gridsouthlatitude+(X-1-1)/60;
+        cellnorth=gridsouthlatitude+(X+1)/60;
+        
+        temp=find(Obj(:,latitude)>=cellsouth & Obj(:,latitude)<=cellnorth & ...
+            Obj(:,longitude)>=cellwest & Obj(:,longitude)<=celleast);
+        Portpoints=[Portpoints;temp];
+    end
+    Portpoints=unique(Portpoints,'rows');% 同一个数据点同时在两个港口内
+    Portpoints=sort(Portpoints);
+    
+    TrackList=[];
+    temp=zeros(1,2);
+    L=length(Portpoints)-1;
+    % 可以用diff进一步优化
+    for j=1:L;
+        if (Portpoints(j+1,1)-Portpoints(j,1) > 30)%2016/7/19 修改参数
+            temp(1)=Portpoints(j,1);
+            temp(2)=Portpoints(j+1,1);
+            TrackList=[TrackList;temp];
+
+            test=Obj(temp(1):temp(2),:);
+            e=max(test(:,3));if(e>East)East=e;end;
+            w=min(test(:,3));if(w<West)West=w;end;
+            s=min(test(:,2));if(s<South)South=s;end;
+            n=max(test(:,2));if(n>North)North=n;end;
+        end
+    end
+%% 保存
+    order=sprintf('%s=Obj;',name);eval(order);
+    order=sprintf('%sTrackList=TrackList;',name);eval(order);
+    order=sprintf('save(''%s'',''%s'',''%sTrackList'');',...
+        name,name,name);eval(order);
+    order=sprintf('clear %s',name);eval(order);
+    order=sprintf('clear %sTrackList',name);eval(order);
+end
+Table=cell(N,1);
+for k=1:N
+    name=Dir(k).name;
+    pos=strfind(name,'.');
+    name=name(1:pos-1);
+    Table(k)={name};
+end
+save('Table','Table');
+East=ceil(East)+0.08;
+West=floor(West)-0.08;
+North=ceil(North)+0.08;
+South=floor(South)-0.08;
+save('Boundary','East','West','South','North');
+clear
+toc;
