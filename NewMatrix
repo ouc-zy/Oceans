@@ -1,0 +1,7 @@
+function Y = NewMatrix( N,S,E,W )
+%NEWHEAT Summary of this function goes here
+%   Detailed explanation goes here
+row=floor(abs(N-S)*600);
+column=floor(abs(E-W)*600);
+Y=zeros(row,column);
+end
