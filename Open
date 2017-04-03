@@ -1,0 +1,33 @@
+function fa = Open( Trick , fa , S , W , F)
+if(F==1)
+    se=strel('disk',15);
+    fa=imerode(fa,se);
+    % Drawtrick(Trick,fa,S,W);
+    se=strel('disk',30);
+    fa=imdilate(fa,se);
+    % Drawtrick(Trick,fa,S,W);
+else
+    se=strel('disk',1);
+    fa=imerode(fa,se);
+    % Drawtrick(Trick,fa,S,W);
+    se=strel('disk',2);
+    fa=imdilate(fa,se);
+    % Drawtrick(Trick,fa,S,W);
+end
+
+
+
+% se=strel('disk',4);
+% figure;
+% Drawtrick(Trick,fa,S,W);
+% for i=1:10
+%     fa=imerode(fa,se);
+%     Drawtrick(Trick,fa,S,W);
+% end
+% for i=1:20
+%     fa=imdilate(fa,se);
+%     Drawtrick(Trick,fa,S,W);
+% end
+
+end
+
