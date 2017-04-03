@@ -1,0 +1,69 @@
+tic;
+load('Boundary.mat');
+load('Table.mat');
+HEATdir=[cd '\HEAT\'];mkdir(HEATdir);
+
+N=length(Table);
+TotleFishery=NewMatrix(North,South,East,West);
+for k=1:N
+    No=char(Table(k));
+    fname=[No '.mat'];load(fname);
+    Heat=NewMatrix(North,South,East,West);
+
+    % figure;plot(track(:,9),track(:,8));
+    % figure;plot(ob(:,9),ob(:,8));
+    order=sprintf('P=max(%s(:,3));',No);eval(order);
+    
+    % 渔船轨迹贴近海岸线的捕鱼行为与远海作业渔船不同
+    if(P>124)
+        flag=1;
+    else
+        flag=0;
+    end
+    
+    order=sprintf('L=size(%sTrackList,1);',No);eval(order);
+    i=1;
+    while (i<=L)
+        order=sprintf('Start=%sTrackList(i,1);',No);eval(order);
+        order=sprintf('End=%sTrackList(i,2);',No);eval(order);
+        order=sprintf('Trick=%s(Start:End,:);',No);eval(order);
+%         plot(Trick(:,9),Trick(:,8));
+%         Tricksub=Trick(find(Trick(:,7)>20&Trick(:,7)<50),:);
+        n=max(Trick(:,2))+0.08;
+        s=min(Trick(:,2))-0.08;
+        e=max(Trick(:,3))+0.08;
+        w=min(Trick(:,3))-0.08;
+        Y=Drawmatrix(Trick,n,s,e,w);
+
+%         Drawtrick(Trick,Y,S,W);
+        Y=Open(Trick,Y,s,w,flag);
+        if(length(find(Y==0))<1)
+            order=sprintf('%sTrackList(i,:)=[];',No);eval(order);
+            L=L-1;
+            continue;
+        end;
+%         Drawtrick(Trick,Y,s,w);
+        if(flag==1)se=strel('disk',63,0);else se=strel('disk',10,0);end
+        Y=imerode(Y,se);
+%         Drawtrick(Trick,Y,s,w);title([No 't' num2str(i)]);
+%         close all;
+        order=sprintf('%sHeat%d=Y;',No,i);eval(order);
+        order=sprintf('%sHeat%d',No,i);save([HEATdir order],order,'s','w');
+        order=sprintf('clear %sHeat%d',No,i);eval(order);
+        
+        Heat=HeatAdd(Y,Heat,s,w);
+        i=i+1;
+    end
+    TotleFishery=TotleFishery+Heat;
+    order=sprintf('%sHeat=Heat;',No);eval(order);
+    order=sprintf('%sHeat',No);save([HEATdir order],order);
+    order=sprintf('clear %sHeat',No);eval(order);
+    
+    order=sprintf('save(''%s'',''%s'',''%sTrackList'');',No,No,No);eval(order);
+    order=sprintf('clear %s',No);eval(order);
+    order=sprintf('clear %sTrackList',No);eval(order);
+end
+
+save([DIR 'TotleFishery'],'TotleFishery');
+clear;
+toc;
