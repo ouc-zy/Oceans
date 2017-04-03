@@ -1,0 +1,30 @@
+function Y = Drawmatrix( ob,North,South,East,West)
+
+
+row=floor(abs(North-South)*600);
+column=floor(abs(East-West)*600);
+
+matrix=ones(row,column);
+
+% figure;
+% imshow(matrix);
+
+L=size(ob,1);
+for i=1:L
+    longitude=ob(i,3);
+    latitude=ob(i,2);
+    y=floor((longitude-West)*600);
+    x=floor((latitude-South)*600);% x是距离South的格子数
+%     matrix(x,y)=0;% 而matrix中x从上向下数，所以图像在此处上下翻转
+    matrix(row-x+1,y)=0;
+%     pause(0.001);
+
+end
+
+
+% imshow(matrix);
+Y=matrix;
+%只是为了方便，最终采用的是上式
+% Y=flipud(matrix);
+end
+
